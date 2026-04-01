@@ -1,6 +1,12 @@
-const BASE_URL = "http://localhost:8080/api";
+// URL HARDCODEADA DE NGROK
+const BASE_URL = "https://unbased-pallidly-donn.ngrok-free.dev/api";
 
-// Importamos los tipos para que TypeScript nos ayude a no cometer errores
+// Headers necesarios para saltar la advertencia de ngrok y definir JSON
+const HEADERS = {
+  "Content-Type": "application/json",
+  "ngrok-skip-browser-warning": "true"
+};
+
 import { ReclamoIndecopi, Abono, ReclamoStats, AbonoStats } from "./types";
 
 async function handleResponse(response: Response) {
@@ -15,57 +21,57 @@ async function handleResponse(response: Response) {
 export const api = {
   reclamos: {
     getAll: (): Promise<ReclamoIndecopi[]> => 
-      fetch(`${BASE_URL}/reclamos`).then(handleResponse),
+      fetch(`${BASE_URL}/reclamos`, { headers: HEADERS }).then(handleResponse),
     
     getStats: (): Promise<ReclamoStats> => 
-      fetch(`${BASE_URL}/stats/reclamos`).then(handleResponse),
+      fetch(`${BASE_URL}/stats/reclamos`, { headers: HEADERS }).then(handleResponse),
     
     create: (data: ReclamoIndecopi): Promise<ReclamoIndecopi> => 
       fetch(`${BASE_URL}/reclamos`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: HEADERS,
         body: JSON.stringify(data)
       }).then(handleResponse),
 
     update: (id: number, data: ReclamoIndecopi): Promise<ReclamoIndecopi> => 
       fetch(`${BASE_URL}/reclamos/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: HEADERS,
         body: JSON.stringify(data)
       }).then(handleResponse),
 
     delete: (id: number) => 
-      fetch(`${BASE_URL}/reclamos/${id}`, { method: "DELETE" }).then(handleResponse),
+      fetch(`${BASE_URL}/reclamos/${id}`, { 
+        method: "DELETE",
+        headers: { "ngrok-skip-browser-warning": "true" } // Solo el bypass para delete
+      }).then(handleResponse),
   },
 
   abonos: {
     getAll: (): Promise<Abono[]> => 
-      fetch(`${BASE_URL}/abonos`).then(handleResponse),
+      fetch(`${BASE_URL}/abonos`, { headers: HEADERS }).then(handleResponse),
     
     getStats: (): Promise<AbonoStats> => 
-      fetch(`${BASE_URL}/stats/abonos`).then(handleResponse),
+      fetch(`${BASE_URL}/stats/abonos`, { headers: HEADERS }).then(handleResponse),
     
-    // Al crear, el Backend calculara el vencimiento inicial (3 dias habiles)
     create: (data: Abono): Promise<Abono> => 
       fetch(`${BASE_URL}/abonos`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: HEADERS,
         body: JSON.stringify(data)
       }).then(handleResponse),
 
-    /**
-     * IMPORTANTE: Al usar este metodo 'update', si el objeto 'data' lleva
-     * intereses nuevos, el Backend detectara el cambio y extendera
-     * el plazo automaticamente a 3 dias habiles desde hoy.
-     */
     update: (id: number, data: Abono): Promise<Abono> => 
       fetch(`${BASE_URL}/abonos/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: HEADERS,
         body: JSON.stringify(data)
       }).then(handleResponse),
 
     delete: (id: number) => 
-      fetch(`${BASE_URL}/abonos/${id}`, { method: "DELETE" }).then(handleResponse),
+      fetch(`${BASE_URL}/abonos/${id}`, { 
+        method: "DELETE",
+        headers: { "ngrok-skip-browser-warning": "true" } 
+      }).then(handleResponse),
   }
 };
