@@ -1,5 +1,5 @@
 // URL HARDCODEADA DE NGROK
-const BASE_URL = "https://reformative-pseudocubical-lino.ngrok-free.dev";
+const BASE_URL = "https://reformative-pseudocubical-lino.ngrok-free.dev/api";
 
 // Headers necesarios para saltar la advertencia de ngrok y definir JSON
 const HEADERS = {
