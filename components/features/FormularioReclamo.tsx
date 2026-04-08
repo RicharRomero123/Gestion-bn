@@ -13,7 +13,7 @@ interface Props {
 }
 
 export const FormularioReclamo = ({ initialData, onSave, onClose }: Props) => {
-  // Inicializamos con la fecha de hoy automáticamente
+  // Inicializamos el formulario con los tipos exactos
   const [form, setForm] = useState<ReclamoIndecopi>({
     nroExpediente: "",
     solicitadoPor: "",
@@ -22,10 +22,11 @@ export const FormularioReclamo = ({ initialData, onSave, onClose }: Props) => {
     fechaRecepcion: new Date().toISOString().split('T')[0],
     fechaVencimiento: "",
     solicitudRealizada: false,
-    estadoInforme: "NO ENVIADO",
-    estadoNotificacion: "NO ENVIADO"
+    estadoInforme: "PENDIENTE", // Corregido: Coincide con EstadoInformeIndecopi
+    estadoNotificacion: "NO ENVIADO" // Coincide con EstadoNotificacionIndecopi
   });
 
+  // Cargar datos si estamos en modo edición
   useEffect(() => {
     if (initialData) {
       setForm({ ...initialData });
@@ -35,14 +36,14 @@ export const FormularioReclamo = ({ initialData, onSave, onClose }: Props) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Calculamos el vencimiento antes de enviar
+    // Calculamos el vencimiento legal (3 días hábiles)
     const fechaVenc = calcularVencimiento(form.fechaRecepcion);
 
+    // Enviamos el objeto completo
     onSave({
       ...form,
       fechaVencimiento: fechaVenc,
-      // Si estamos editando, mantenemos el ID. Si es nuevo, el backend lo genera.
-      id: initialData?.id 
+      id: initialData?.id // Si es nuevo será undefined, si es edición mantendrá su número
     });
   };
 
@@ -58,7 +59,7 @@ export const FormularioReclamo = ({ initialData, onSave, onClose }: Props) => {
               {initialData ? "Editar Seguimiento" : "Nuevo Seguimiento Administrativo"}
             </span>
           </div>
-          <button onClick={onClose} className="hover:rotate-90 transition-transform">
+          <button onClick={onClose} className="hover:rotate-90 transition-transform p-1">
             <X size={24} />
           </button>
         </div>
@@ -66,7 +67,7 @@ export const FormularioReclamo = ({ initialData, onSave, onClose }: Props) => {
         <form onSubmit={handleSubmit} className="p-8 space-y-6 text-sm">
           
           <div className="space-y-5">
-            {/* CAMPO: NÚMERO DE EXPEDIENTE (NUEVO Y OBLIGATORIO) */}
+            {/* CAMPO: NÚMERO DE EXPEDIENTE */}
             <div className="bg-red-50/50 p-4 rounded-xl border border-red-100">
               <label className="text-[10px] font-black text-red-700 uppercase flex items-center gap-2 mb-1">
                 <FileText size={12} /> Número de Expediente
@@ -80,15 +81,25 @@ export const FormularioReclamo = ({ initialData, onSave, onClose }: Props) => {
               />
             </div>
 
-            {/* CAMPO: SOLICITADO POR */}
-            <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase">Unidad Solicitante</label>
-              <input 
+            {/* CAMPO: ABOGADO SOLICITANTE (DROPDOWN) */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                Abogado Solicitante
+              </label>
+              <select 
                 required 
                 value={form.solicitadoPor} 
-                className="w-full border-b border-slate-200 py-2 outline-none focus:border-blue-600 uppercase font-bold text-slate-700" 
-                onChange={e => setForm({...form, solicitadoPor: e.target.value.toUpperCase()})} 
-              />
+                className="w-full border-b border-slate-200 py-2 outline-none focus:border-blue-600 font-bold text-slate-700 bg-transparent cursor-pointer appearance-none uppercase"
+                onChange={e => setForm({...form, solicitadoPor: e.target.value})}
+              >
+                <option value="" disabled>SELECCIONE ABOGADO</option>
+                <option value="OMAR CACHAY">OMAR CACHAY</option>
+                <option value="EVELYN LOPEZ">EVELYN LOPEZ</option>
+                <option value="SILVIA NAVARRO">SILVIA NAVARRO</option>
+                <option value="ELIZABETH FLORES">ELIZABETH FLORES</option>
+                <option value="PAOLA RAMIREZ">PAOLA RAMIREZ</option>
+                <option value="MARCO GAVIDIA">MARCO GAVIDIA</option>
+              </select>
             </div>
 
             {/* CAMPO: DATOS DEL CLIENTE */}
@@ -107,7 +118,7 @@ export const FormularioReclamo = ({ initialData, onSave, onClose }: Props) => {
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase">Canal de Ingreso</label>
                 <select 
-                  className="w-full border-b border-slate-200 py-2 bg-transparent font-bold text-slate-700 cursor-pointer" 
+                  className="w-full border-b border-slate-200 py-2 bg-transparent font-bold text-slate-700 cursor-pointer outline-none focus:border-blue-600" 
                   value={form.canal}
                   onChange={e => setForm({...form, canal: e.target.value})}
                 >
@@ -115,7 +126,7 @@ export const FormularioReclamo = ({ initialData, onSave, onClose }: Props) => {
                 </select>
               </div>
 
-              {/* CAMPO: FECHA DE RECEPCIÓN (AUTOMÁTICA) */}
+              {/* CAMPO: FECHA DE RECEPCIÓN (MOSTRAR DATO) */}
               <div className="bg-slate-50 p-3 rounded-xl text-center border border-slate-100">
                 <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Fecha de Ingreso</label>
                 <p className="font-mono font-black text-slate-700 text-sm">
@@ -135,8 +146,8 @@ export const FormularioReclamo = ({ initialData, onSave, onClose }: Props) => {
             {initialData ? "Guardar Cambios" : "Registrar en Base de Datos"}
           </button>
           
-          <p className="text-center text-[9px] text-slate-400 font-medium">
-            Al confirmar, se calculará automáticamente el plazo legal de 3 días hábiles.
+          <p className="text-center text-[9px] text-slate-400 font-medium italic">
+            * Se generará un registro administrativo en el servidor del Banco de la Nación.
           </p>
         </form>
       </div>

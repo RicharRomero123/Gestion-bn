@@ -1,12 +1,16 @@
 /**
- * ESTADOS DE GESTIÓN (Type Aliases para evitar errores de dedo)
- * Define los estados permitidos para el flujo de informes y notificaciones.
+ * ESTADOS ESPECÍFICOS PARA INDECOPI
+ * Separamos Informe de Notificación para un control total del flujo.
  */
-export type EstadoGestion = "NO ENVIADO" | "PENDIENTE" | "ENVIADO";
+export type EstadoInformeIndecopi = "PENDIENTE" | "ENVIADO";
+
+export type EstadoNotificacionIndecopi = 
+  | "NO ENVIADO" 
+  | "ENVIADO CON COMPROBANTE" 
+  | "ENVIADO SIN COMPROBANTE";
 
 /**
  * INTERFAZ PARA EL SEMÁFORO (UI)
- * Define la estructura visual que retornan las funciones de utilidad.
  */
 export interface EstadoSemaforo {
   label: string;
@@ -16,30 +20,29 @@ export interface EstadoSemaforo {
 
 /**
  * MODELO: RECLAMOS INDECOPI
- * Mapea directamente con la entidad ReclamoIndecopi.java del Backend.
+ * Mapea la entidad del Banco de la Nación.
  */
 export interface ReclamoIndecopi {
-  id?: number;               // Generado por la base de datos
-  nroExpediente: string;     // Identificador único del caso
-  solicitadoPor: string;
-  datosCliente: string;
-  canal: string;
-  fechaRecepcion: string;    // Formato YYYY-MM-DD
-  fechaVencimiento: string;  // Formato YYYY-MM-DD (Calculado en Backend)
+  id?: number;              // OPCIONAL: Permite crear nuevos sin ID inicial
+  nroExpediente: string;    // Identificador del caso
+  solicitadoPor: string;    // Abogado asignado
+  datosCliente: string;     // Nombre / DNI
+  canal: string;            // Libro Reclamos, Web, etc.
+  fechaRecepcion: string;   // Formato YYYY-MM-DD
+  fechaVencimiento: string; // Calculado (3 días hábiles)
   solicitudRealizada: boolean;
   
   // Gestión de Informe
-  estadoInforme: EstadoGestion;
+  estadoInforme: EstadoInformeIndecopi;
   fechaUpdateInforme?: string | null;
   
-  // Gestión de Notificación
-  estadoNotificacion: EstadoGestion;
+  // Gestión de Notificación (Flujo de 3 estados)
+  estadoNotificacion: EstadoNotificacionIndecopi;
   fechaUpdateNotificacion?: string | null;
 }
 
 /**
  * MODELO: GESTIÓN DE ABONOS
- * Mapea directamente con la entidad Abono.java del Backend.
  */
 export interface Abono {
   id?: number;
@@ -48,37 +51,38 @@ export interface Abono {
   importeReclamado: number;
   interesesLegales: number;
   costas: number;
-  fechaIngreso: string;            // Fecha en que entra el pedido
-  fechaVencimiento: string;        // Fecha límite (Calculada en Backend)
-  fechaUpdateIntereses?: string | null; // AUDITORÍA: Fecha en que se añadieron intereses
+  
+  // FECHAS DE PROCESO
+  fechaIngreso: string;
+  fechaVencimiento: string;
+  fechaUpdateIntereses?: string | null; // <--- ESTA ES LA QUE TE DABA ERROR
+  
+  // ESTADOS DE GESTIÓN
   constanciaEntregada: boolean;
   fechaEntregaConstancia?: string | null;
+  
+  // FLUJO ESPECÍFICO DE INTERÉS
+  notaAbonoInteres: "PENDIENTE" | "ATENDIDO";
+  enviadoLegalInteres: boolean;
 }
 
 /**
- * DTOs DE ESTADÍSTICAS (PROVENIENTES DEL BACKEND)
- * Estas interfaces deben coincidir EXACTAMENTE con las clases Java del servidor.
+ * DTOs DE ESTADÍSTICAS (Dashboard)
  */
-
 export interface ReclamoStats {
   total: number;
   ingresadosHoy: number;
-  criticos: number;    // Casos a 1 día de vencer o venciendo hoy
-  vencidos: number;    // Casos con fecha vencimiento pasada y sin completar
-  completados: number; // Casos con estado "ENVIADO"
+  criticos: number;
+  vencidos: number;
+  completados: number;
 }
 
 export interface AbonoStats {
   total: number;
   ingresadosHoy: number;
-  pendientesConstancia: number; // constanciaEntregada = false
-  vencidos: number;             // fechaVencimiento pasada + pendiente
-  montoTotalAcumulado: number;  // Sumatoria total de S/ (Importe + Int + Costas)
+  pendientesConstancia: number;
+  vencidos: number;
+  montoTotalAcumulado: number;
 }
-
-/**
- * TIPO AUXILIAR PARA DASHBOARD
- * Permite manejar estados de carga y errores de forma genérica.
- */
+export type EstadoNotaAbono = "PENDIENTE" | "ATENDIDO" | "NO ATENDIDO";
 export type GenericStats = ReclamoStats | AbonoStats | null;
-

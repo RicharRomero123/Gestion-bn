@@ -11,37 +11,57 @@ import {
 } from "date-fns";
 import { ReclamoIndecopi, Abono, EstadoSemaforo } from "./types";
 
+/**
+ * Utilidad para combinar clases de Tailwind sin conflictos de cascada.
+ */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Calcula la fecha de vencimiento sumando 3 días hábiles.
+ */
 export const calcularVencimiento = (fechaRec: string): string => {
   const fecha = addBusinessDays(parseISO(fechaRec), 3);
   return format(fecha, "yyyy-MM-dd");
 };
 
 /**
- * Lógica del Semáforo con Regla de 3 Pasos para Indecopi
+ * LÓGICA DEL SEMÁFORO (Cerebro Visual)
+ * Implementa la lógica estricta para Indecopi y Abonos (Con/Sin Interés).
  */
 export const obtenerInfoSemaforo = (item: any): EstadoSemaforo => {
   // 1. REGLA DE TRIPLE CHECK (Para Indecopi)
   const esIndecopiAtendido = 
     item.estadoInforme === "ENVIADO" && 
     item.solicitudRealizada === true && 
-    item.estadoNotificacion === "ENVIADO";
+    (item.estadoNotificacion === "ENVIADO CON COMPROBANTE" || 
+     item.estadoNotificacion === "ENVIADO SIN COMPROBANTE");
 
-  // REGLA PARA ABONOS
-  const esAbonoAtendido = item.constanciaEntregada === true;
+  // 2. REGLA ESTRICTA PARA ABONOS (Actualizada con Secuencia Legal)
+  const tieneInteres = (item.interesesLegales || 0) > 0;
+  let esAbonoAtendido = false;
+
+  if (tieneInteres) {
+    // SECUENCIA OBLIGATORIA SI HAY INTERÉS: Nota Atendida + Enviado Legal + Constancia
+    esAbonoAtendido = 
+      item.notaAbonoInteres === "ATENDIDO" && 
+      item.enviadoLegalInteres === true && 
+      item.constanciaEntregada === true;
+  } else {
+    // FLUJO DIRECTO: Solo requiere la Constancia
+    esAbonoAtendido = item.constanciaEntregada === true;
+  }
 
   if (esIndecopiAtendido || esAbonoAtendido) {
     return { 
-      label: "ATENDIDO / LISTO", 
+      label: "ATENDIDO / ARCHIVADO", 
       color: "bg-green-50 text-green-700 border border-green-200", 
       critico: false 
     };
   }
 
-  // 2. LÓGICA POR TIEMPO (Si no está atendido)
+  // 3. LÓGICA POR TIEMPO (Si no está atendido)
   const hoy = startOfDay(new Date());
   const vencimiento = parseISO(item.fechaVencimiento);
   const diasRestantes = differenceInDays(vencimiento, hoy);
@@ -69,6 +89,9 @@ export const obtenerInfoSemaforo = (item: any): EstadoSemaforo => {
   };
 };
 
+/**
+ * FILTRO PARA INDECOPI
+ */
 export const filtrarPorRangoYBusqueda = (
   data: ReclamoIndecopi[], 
   busqueda: string, 
@@ -83,10 +106,13 @@ export const filtrarPorRangoYBusqueda = (
     const vencimiento = parseISO(item.fechaVencimiento);
     const diasRestantes = differenceInDays(vencimiento, hoy);
 
-    // Estado interno para el filtro (Triple Check)
-    let estadoActual = "DENTRO_PLAZO";
-    const esAtendido = item.estadoInforme === "ENVIADO" && item.solicitudRealizada && item.estadoNotificacion === "ENVIADO";
+    const esAtendido = 
+      item.estadoInforme === "ENVIADO" && 
+      item.solicitudRealizada && 
+      (item.estadoNotificacion === "ENVIADO CON COMPROBANTE" || 
+       item.estadoNotificacion === "ENVIADO SIN COMPROBANTE");
 
+    let estadoActual = "DENTRO_PLAZO";
     if (esAtendido) {
       estadoActual = "ATENDIDO";
     } else if (diasRestantes < 0) {
@@ -115,6 +141,9 @@ export const filtrarPorRangoYBusqueda = (
   });
 };
 
+/**
+ * FILTRO PARA ABONOS (Actualizado con secuencia de Nota + Legal)
+ */
 export const filtrarAbonos = (
   data: Abono[], 
   busqueda: string, 
@@ -129,8 +158,14 @@ export const filtrarAbonos = (
     const vencimiento = parseISO(item.fechaVencimiento);
     const diasRestantes = differenceInDays(vencimiento, hoy);
 
+    // Lógica dual para el filtro de "Atendidos"
+    const tieneInteres = (item.interesesLegales || 0) > 0;
+    const esAtendido = tieneInteres 
+      ? (item.notaAbonoInteres === "ATENDIDO" && item.enviadoLegalInteres && item.constanciaEntregada)
+      : item.constanciaEntregada;
+
     let estadoActual = "DENTRO_PLAZO";
-    if (item.constanciaEntregada) {
+    if (esAtendido) {
       estadoActual = "ATENDIDO";
     } else if (diasRestantes < 0) {
       estadoActual = "VENCIDO";
