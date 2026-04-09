@@ -1,17 +1,17 @@
-// URL HARDCODEADA DE NGROK
-const BASE_URL = "https://reformative-pseudocubical-lino.ngrok-free.dev/api";
+import { ReclamoIndecopi, Abono, ReclamoStats, AbonoStats } from "./types";
 
-// Headers necesarios para saltar la advertencia de ngrok y definir JSON
+// 🔗 ENLACE A VARIABLE DE ENTORNO
+// process.env.NEXT_PUBLIC_API_URL tomará el valor de tu archivo .env.local
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
 const HEADERS = {
   "Content-Type": "application/json",
   "ngrok-skip-browser-warning": "true"
 };
 
-import { ReclamoIndecopi, Abono, ReclamoStats, AbonoStats } from "./types";
-
 async function handleResponse(response: Response) {
   if (!response.ok) {
-    const errorBody = await response.json();
+    const errorBody = await response.json().catch(() => ({ message: "Error en la petición" }));
     throw errorBody; 
   }
   if (response.status === 204) return null;
@@ -43,7 +43,7 @@ export const api = {
     delete: (id: number) => 
       fetch(`${BASE_URL}/reclamos/${id}`, { 
         method: "DELETE",
-        headers: { "ngrok-skip-browser-warning": "true" } // Solo el bypass para delete
+        headers: HEADERS 
       }).then(handleResponse),
   },
 
@@ -71,7 +71,7 @@ export const api = {
     delete: (id: number) => 
       fetch(`${BASE_URL}/abonos/${id}`, { 
         method: "DELETE",
-        headers: { "ngrok-skip-browser-warning": "true" } 
+        headers: HEADERS 
       }).then(handleResponse),
   }
 };
